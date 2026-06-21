@@ -1,0 +1,10 @@
+__pycache__/
+*.pyc
+config.toml
+local/          # throwaway try-it sandbox
+*.sqlite
+*.lock
+.venv/
+client_secret*.json
+token.json
+.claude/settings.local.json

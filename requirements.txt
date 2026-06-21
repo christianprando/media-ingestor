@@ -1,0 +1,7 @@
+# Stage 1 (ingest core) uses only the Python standard library.
+# External tools needed at runtime in the jail:
+#   ffmpeg   (provides ffprobe, used for capture-date detection)
+#
+# Later stages will add:
+#   google-api-python-client, google-auth-oauthlib   (YouTube upload)
+#   rclone (binary, not pip)                          (off-site backup)

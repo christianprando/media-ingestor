@@ -1,0 +1,42 @@
+# Copy to config.toml and edit the paths. On TrueNAS SCALE the container
+# mounts your media dataset at /data, so these stay as-is.
+
+[paths]
+# Root holding one subfolder per source: incoming/<device>/
+incoming  = "/data/incoming"
+# Pristine originals: <originals>/YYYY/MM/<YYYYMMDD-HHMMSS>_<source>_<name>.ext
+originals = "/data/originals"
+# Derived day videos uploaded to YouTube: <derived>/YYYY/YYYY-MM-DD.mp4
+derived   = "/data/derived"
+# (No database: dedupe and publish-state are derived from these folders.)
+
+# One [sources.<name>] per device. The name is the subfolder under incoming/
+# AND a token in archived filenames, so use letters/digits/'.'/'-' only — no
+# '_' or spaces. publish=true marks it eligible for the YouTube publish stage
+# (cameras); phones are archive-only (publish=false) for now.
+[sources."my-camera"]
+publish = true
+
+[sources."phone-someone"]
+publish = false
+
+[ingest]
+video_extensions = [".mov", ".mp4", ".mts", ".m4v", ".avi", ".m2ts"]
+photo_extensions = [".jpg", ".jpeg", ".heic", ".heif", ".png", ".dng", ".cr2", ".cr3", ".nef", ".arw"]
+sidecar_extensions = [".thm", ".xml", ".lrf", ".srt", ".gpx", ".aae"]
+hash_algorithm = "blake2b"          # or "sha256"
+# Remove the source only after the archived copy's hash is verified.
+delete_source_after_verify = true
+# After consuming media, remove emptied subfolders left in incoming/ (e.g. a
+# pasted DCIM tree). Never touches the watched source roots themselves.
+prune_empty_dirs = true
+
+[organize]
+# "metadata" reads embedded capture date (exiftool preferred — covers all
+# photo/video formats and many date tags; ffprobe/Pillow as fallbacks),
+# then a date parsed from the filename, then file mtime as a last resort.
+# "mtime" uses file mtime only.
+date_source = "metadata"
+# Parse a date from the filename (e.g. IMG_20230615_143022) when metadata
+# has none, before falling back to mtime. Helpful for backup-restored files.
+use_filename_date = true
