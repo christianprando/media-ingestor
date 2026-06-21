@@ -1,7 +1,11 @@
 # TrueNAS SCALE → Apps → "Discover Apps" → (top-right) "Custom App" →
-# "Install via YAML". Paste this, edit the two CHANGE-ME host paths, deploy.
+# "Install via YAML". Paste this as-is and deploy — paths are already set for
+# the main-pool/photos dataset.
 #
 # `git push` rebuilds the image; Watchtower below auto-pulls it within minutes.
+#
+# The container only ever writes to /data/incoming, /data/originals and
+# /data/derived — your existing folders in the dataset are never touched.
 services:
   media-ingestor:
     image: ghcr.io/christianprando/media-ingestor:latest
@@ -10,12 +14,13 @@ services:
     # Poll incoming/ every 30s; ingest a file once its size is stable for 20s.
     command: ["watch", "-c", "/config/config.toml", "--interval", "30", "--settle", "20"]
     volumes:
-      # CHANGE-ME — host path to your config.toml (see DEPLOY.md for its contents)
-      - /mnt/POOL/apps/media-ingestor/config.toml:/config/config.toml:ro
-      # CHANGE-ME — host path to the media dataset (holds incoming/ originals/ derived/)
-      - /mnt/POOL/media:/data
-    # If you want archived files owned by a specific user instead of root,
-    # uncomment and set to that user's UID:GID (and ensure it can write /data):
+      # The media dataset, holding incoming/ originals/ derived/
+      - /mnt/main-pool/photos:/data
+      # The config file, read-only (lives in a hidden folder in the same dataset)
+      - /mnt/main-pool/photos/.media-ingestor/config.toml:/config/config.toml:ro
+    # The container runs as root, so archived files are root-owned. If your SMB
+    # user / Immich needs to own them, set this to that user's UID:GID and make
+    # sure it can write the dataset:
     # user: "3000:3000"
     labels:
       - com.centurylinklabs.watchtower.enable=true

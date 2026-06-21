@@ -36,12 +36,13 @@ GitHub → your profile → **Packages** → `media-ingestor` → **Package sett
 
 ## 3. Prepare storage on TrueNAS (one time)
 
-Create/choose a dataset for the media, e.g. `tank/media`, and an app-config
-dir. Inside the media dataset create three folders:
+In the **main-pool/photos** dataset (filesystem path `/mnt/main-pool/photos`)
+create these folders — they sit alongside your existing data, which the
+container never touches:
 ```
-<media-dataset>/incoming
-<media-dataset>/originals
-<media-dataset>/derived
+/mnt/main-pool/photos/incoming
+/mnt/main-pool/photos/originals
+/mnt/main-pool/photos/derived
 ```
 Then under `incoming/` create one folder per device:
 ```
@@ -51,7 +52,7 @@ incoming/phone-christian
 incoming/phone-natalie
 ```
 
-Create the config file at e.g. `tank/apps/media-ingestor/config.toml` with:
+Create the config file at `/mnt/main-pool/photos/.media-ingestor/config.toml` with:
 
 ```toml
 [paths]
@@ -80,13 +81,9 @@ use_filename_date = true
 ## 4. Create the Custom App (one time)
 
 TrueNAS → **Apps** → **Discover Apps** → top-right **Custom App** →
-**Install via YAML**. Paste [`docker-compose.yml`](docker-compose.yml) and edit
-the two `CHANGE-ME` host paths:
-- the `config.toml` path (from step 3)
-- the media dataset path (mounted at `/data`)
-
-Deploy. The `media-ingestor` container starts `watch`ing; `watchtower` keeps it
-updated.
+**Install via YAML**. Paste [`docker-compose.yml`](docker-compose.yml) **as-is**
+— the paths are already set for `main-pool/photos`. Deploy. The `media-ingestor`
+container starts `watch`ing; `watchtower` keeps it updated.
 
 ## 5. Verify
 
