@@ -39,12 +39,11 @@ filename; events will live as albums in Immich later).
 
 ```
 incoming/
-  cam/                              ← Pi drops the SD card here
-  phone-dad/  phone-mom/  ...       ← (later) phone backup targets
-media/
-  originals/2026/06/
-      20260621-141203_cam_DSC0042.mov   ← YYYY/MM/<YYYYMMDD-HHMMSS>_<source>_<name>
-  derived/2026/2026-06-21.mp4           ← the camera day video uploaded to YouTube
+  canon/  osmo-pocket-4/  phone-*/      ← one folder per device (config-driven)
+originals/
+  2026/06/20260621-141203_canon_IMG_0042.jpg   ← YYYY/MM/<YYYYMMDD-HHMMSS>_<source>_<name>
+derived/
+  2026/2026-06-21.mp4                          ← camera day video uploaded to YouTube
 ```
 
 **No database.** The files are the only source of truth. Date, source, and original
@@ -56,21 +55,21 @@ self-describing and sortable even if moved.
 
 ## Status
 
-- [x] **Ingest core**: generic source/media ingest, capture-date organise, checksum,
-      dedupe, copy-verify-then-delete. Tested (8 tests).
+- [x] **Ingest core**: generic source/media ingest, capture-date organise, dedupe,
+      copy-verify-then-delete, crash-safe, discard proxies. Tested.
+- [x] **Deploy**: GitHub Actions → GHCR image → TrueNAS SCALE Custom App + Watchtower
+      auto-update. **Live and ingesting on the NAS.**
 - [ ] **Publish**: per-day lossless concat (camera only) + YouTube unlisted upload + playlist.
-- [ ] **Pi offloader**: udev rule → copy card → `incoming/cam/` + "safe to remove" ping.
-- [ ] **Deploy**: GitHub Actions → GHCR image → TrueNAS Custom App + Watchtower auto-update.
-- [ ] **Off-site backup** of `media/originals`.
+- [ ] **Pi offloader**: udev rule → copy card → `incoming/<device>/` + "safe to remove" ping.
+- [ ] **Off-site backup** of `originals/`.
 - [ ] *(later)* Phone ingestion via Immich album → `incoming/phone-*` (archive only).
 
 ## What the ingest core does
 
 For every media file (photo or video, any source) under `incoming/<source>/`:
 
-1. Read the **capture time** (ffprobe for video, EXIF for photos, mtime fallback)
-   and compute the deterministic destination
-   `originals/YYYY/MM/<YYYYMMDD-HHMMSS>_<source>_<name>`.
+1. Read the **capture time** (metadata-first — see below) and compute the
+   deterministic destination `originals/YYYY/MM/<YYYYMMDD-HHMMSS>_<source>_<name>`.
 2. If that destination already holds this exact file (same size + identical bytes)
    → duplicate; the source is dropped. Because the same input always maps to the
    same destination, a re-inserted card lands on paths that already exist and is
@@ -86,6 +85,11 @@ handled: ingest recurses to any depth, archives the media by date, then removes 
 emptied subfolders — but **never deletes files it doesn't recognise**, so a folder
 holding an unknown file is left intact (and so is the watched source root). Symlinks
 are not followed, so a looping link can't trap the scan.
+
+**Disposable proxies** are dropped, not archived: any extension in
+`discard_extensions` (default `.lrf`, DJI's low-res proxy video) is deleted from
+`incoming/` during the same pass. Genuine sidecars (`.thm`, `.srt`, …) are still
+carried alongside their media.
 
 ## Capture-date detection
 
@@ -163,9 +167,10 @@ pytest                                # safety net
 ruff check .                          # lint
 ```
 
-Docker is only the deploy artifact (dev/prod parity); see the Dockerfile and
-(coming) docker-compose.yml. Deploy flow: `git push` → GitHub Actions builds and
-pushes `ghcr.io/christianprando/media-ingestor` → TrueNAS pulls (Watchtower auto-updates).
+Docker is only the deploy artifact (dev/prod parity); see [Dockerfile](Dockerfile),
+[docker-compose.yml](docker-compose.yml), and [DEPLOY.md](DEPLOY.md) for the full
+setup. Deploy flow: `git push` → GitHub Actions builds and pushes
+`ghcr.io/christianprando/media-ingestor` → TrueNAS pulls (Watchtower auto-updates).
 
 ## Tests
 
