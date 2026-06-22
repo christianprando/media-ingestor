@@ -11,8 +11,10 @@ date-organised archive on a TrueNAS SCALE NAS, deduplicated and verified, with n
 database. Camera videos will later be published to YouTube as per-day unlisted
 videos (publish stage not built yet).
 
-**Status:** ingest core is built, tested, and **live on the NAS**. Still to come:
-YouTube publish, Raspberry Pi card-offloader, off-site backup, Immich.
+**Status:** ingest core is built, tested, and **live on the NAS**. Off-site backup
+is already handled by the user's existing nightly NAS backup (archive lives in the
+backed-up photos dataset). Still to come: YouTube publish, Raspberry Pi
+card-offloader, Immich.
 
 ## Architecture
 

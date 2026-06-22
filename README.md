@@ -61,7 +61,8 @@ self-describing and sortable even if moved.
       auto-update. **Live and ingesting on the NAS.**
 - [ ] **Publish**: per-day lossless concat (camera only) + YouTube unlisted upload + playlist.
 - [ ] **Pi offloader**: udev rule → copy card → `incoming/<device>/` + "safe to remove" ping.
-- [ ] **Off-site backup** of `originals/`.
+- [x] **Off-site backup** — handled by the existing nightly NAS backup (the archive
+      lives in the already-backed-up photos dataset).
 - [ ] *(later)* Phone ingestion via Immich album → `incoming/phone-*` (archive only).
 
 ## What the ingest core does
