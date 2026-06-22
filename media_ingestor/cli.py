@@ -178,7 +178,7 @@ def _cmd_watch(cfg: Config, args) -> int:
                 log.debug("waiting for %s to finish copying (size %d)", path, size)
         prev_sizes = sizes
 
-        stats = ingest.ingest_paths(cfg, ready, dry_run=args.dry_run)
+        stats = ingest.ingest_paths(cfg, ready, dry_run=args.dry_run, settle_seconds=args.settle)
         if stats.imported or stats.duplicates or stats.errors:
             log.info("scan: %s", stats)
         # Sleep in short slices so signals are handled promptly.

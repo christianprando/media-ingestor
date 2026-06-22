@@ -25,7 +25,10 @@ _VALID_SOURCE = re.compile(r"[A-Za-z0-9.-]+")
 DEFAULT_VIDEO_EXTS = [".mov", ".mp4", ".mts", ".m4v", ".avi", ".m2ts"]
 DEFAULT_PHOTO_EXTS = [".jpg", ".jpeg", ".heic", ".heif", ".png", ".dng",
                       ".cr2", ".cr3", ".nef", ".arw", ".raf", ".rw2"]
-DEFAULT_SIDECAR_EXTS = [".thm", ".xml", ".lrf", ".srt", ".gpx", ".aae"]
+DEFAULT_SIDECAR_EXTS = [".thm", ".xml", ".srt", ".gpx", ".aae"]
+# Disposable companion files deleted from incoming instead of archived.
+# .lrf = DJI low-resolution proxy video (redundant once you keep the MP4).
+DEFAULT_DISCARD_EXTS = [".lrf"]
 
 
 @dataclass(frozen=True)
@@ -48,6 +51,8 @@ class Config:
     video_exts: list[str] = field(default_factory=lambda: list(DEFAULT_VIDEO_EXTS))
     photo_exts: list[str] = field(default_factory=lambda: list(DEFAULT_PHOTO_EXTS))
     sidecar_exts: list[str] = field(default_factory=lambda: list(DEFAULT_SIDECAR_EXTS))
+    # Files deleted from incoming rather than archived (disposable proxies/junk).
+    discard_exts: list[str] = field(default_factory=lambda: list(DEFAULT_DISCARD_EXTS))
 
     # Used only to verify a copy landed intact; never persisted.
     hash_algorithm: str = "blake2b"
@@ -67,6 +72,7 @@ class Config:
         self.video_exts = [e.lower() for e in self.video_exts]
         self.photo_exts = [e.lower() for e in self.photo_exts]
         self.sidecar_exts = [e.lower() for e in self.sidecar_exts]
+        self.discard_exts = [e.lower() for e in self.discard_exts]
         if self.date_source not in ("metadata", "mtime"):
             raise ValueError(f"date_source must be 'metadata' or 'mtime', got {self.date_source!r}")
         if not self.sources:
@@ -117,6 +123,7 @@ def load_config(path: str | Path) -> Config:
         video_exts=ingest.get("video_extensions", list(DEFAULT_VIDEO_EXTS)),
         photo_exts=ingest.get("photo_extensions", list(DEFAULT_PHOTO_EXTS)),
         sidecar_exts=ingest.get("sidecar_extensions", list(DEFAULT_SIDECAR_EXTS)),
+        discard_exts=ingest.get("discard_extensions", list(DEFAULT_DISCARD_EXTS)),
         hash_algorithm=ingest.get("hash_algorithm", "blake2b"),
         delete_source_after_verify=ingest.get("delete_source_after_verify", True),
         prune_empty_dirs=ingest.get("prune_empty_dirs", True),

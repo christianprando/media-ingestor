@@ -83,6 +83,34 @@ def _media_files(root: Path, cfg: Config, settle_seconds: float) -> list[Path]:
     return sorted(out)
 
 
+def _discard_files(cfg: Config, settle_seconds: float) -> int:
+    """Delete disposable companion files (e.g. DJI .lrf proxies) from incoming
+    instead of archiving them. Skips not-yet-settled files. Returns the count."""
+    if not cfg.discard_exts:
+        return 0
+    now = time.time()
+    count = 0
+    for source in cfg.sources.values():
+        root = cfg.incoming / source.name
+        if not root.exists():
+            continue
+        for dirpath, _dirnames, filenames in os.walk(root, followlinks=False):
+            for fn in filenames:
+                p = Path(dirpath) / fn
+                if p.suffix.lower() not in cfg.discard_exts:
+                    continue
+                try:
+                    if settle_seconds > 0 and now - p.stat().st_mtime < settle_seconds:
+                        continue
+                    p.unlink()
+                    count += 1
+                except OSError:
+                    pass
+    if count:
+        log.info("discarded %d disposable file(s) (e.g. %s)", count, ", ".join(cfg.discard_exts))
+    return count
+
+
 def _prune_empty_dirs(cfg: Config) -> None:
     """Remove subfolders that are empty after their media was consumed (e.g. a
     pasted DCIM tree). Walks bottom-up; never removes the watched source roots,
@@ -273,8 +301,10 @@ def find_candidates(cfg: Config, settle_seconds: float) -> list[tuple[Source, Pa
     return items
 
 
-def ingest_paths(cfg: Config, items: list[tuple[Source, Path]], *, dry_run: bool = False) -> IngestStats:
-    """Ingest a specific list of (source, path) pairs."""
+def ingest_paths(cfg: Config, items: list[tuple[Source, Path]], *,
+                 dry_run: bool = False, settle_seconds: float = 0.0) -> IngestStats:
+    """Ingest a specific list of (source, path) pairs, then run the janitorial
+    pass (discard disposable files, prune emptied folders)."""
     stats = IngestStats()
     if not dry_run:
         sweep_staging(cfg)  # clear any crash leftovers before writing
@@ -287,8 +317,10 @@ def ingest_paths(cfg: Config, items: list[tuple[Source, Path]], *, dry_run: bool
             continue
         field = _RESULT_FIELD.get(result, "skipped")
         setattr(stats, field, getattr(stats, field) + 1)
-    if not dry_run and cfg.prune_empty_dirs:
-        _prune_empty_dirs(cfg)
+    if not dry_run:
+        _discard_files(cfg, settle_seconds)
+        if cfg.prune_empty_dirs:
+            _prune_empty_dirs(cfg)
     return stats
 
 
@@ -297,4 +329,4 @@ def run(cfg: Config, *, dry_run: bool = False, settle_seconds: float = 0.0) -> I
     items = [(source, path) for source, path, _size in find_candidates(cfg, settle_seconds)]
     if items:
         log.info("found %d media file(s) to ingest", len(items))
-    return ingest_paths(cfg, items, dry_run=dry_run)
+    return ingest_paths(cfg, items, dry_run=dry_run, settle_seconds=settle_seconds)

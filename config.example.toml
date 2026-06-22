@@ -23,7 +23,10 @@ publish = false
 [ingest]
 video_extensions = [".mov", ".mp4", ".mts", ".m4v", ".avi", ".m2ts"]
 photo_extensions = [".jpg", ".jpeg", ".heic", ".heif", ".png", ".dng", ".cr2", ".cr3", ".nef", ".arw"]
-sidecar_extensions = [".thm", ".xml", ".lrf", ".srt", ".gpx", ".aae"]
+sidecar_extensions = [".thm", ".xml", ".srt", ".gpx", ".aae"]
+# Disposable companion files deleted from incoming instead of archived.
+# .lrf = DJI low-resolution proxy video (redundant once you keep the MP4).
+discard_extensions = [".lrf"]
 hash_algorithm = "blake2b"          # or "sha256"
 # Remove the source only after the archived copy's hash is verified.
 delete_source_after_verify = true

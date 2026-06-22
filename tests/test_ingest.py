@@ -209,6 +209,29 @@ def test_folder_with_leftover_nonmedia_is_kept(tmp_path):
     assert sub.exists()                         # so its folder is kept
 
 
+def test_discard_extension_is_deleted_not_archived(tmp_path):
+    cfg = make_config(tmp_path)  # discard_exts defaults to ['.lrf']
+    write_media(cfg.incoming / "cam" / "DJI_1.mp4", b"video", when="2026-06-20T10:00:00")
+    (cfg.incoming / "cam" / "DJI_1.lrf").write_bytes(b"low-res proxy")
+
+    ingest.run(cfg, dry_run=False)
+
+    assert (cfg.originals / "2026" / "06" / "20260620-100000_cam_DJI_1.mp4").exists()
+    assert not (cfg.incoming / "cam" / "DJI_1.lrf").exists()   # discarded
+    assert not list(cfg.originals.rglob("*.lrf"))              # never archived
+
+
+def test_orphan_discard_file_is_removed_and_folder_pruned(tmp_path):
+    cfg = make_config(tmp_path)
+    sub = cfg.incoming / "cam" / "DJI_001"
+    sub.mkdir(parents=True)
+    (sub / "DJI_9.lrf").write_bytes(b"orphan proxy")  # no matching media
+
+    ingest.run(cfg, dry_run=False)
+
+    assert not sub.exists()  # lrf discarded -> folder emptied -> pruned
+
+
 def test_ingest_works_when_chmod_is_denied(tmp_path, monkeypatch):
     # Reproduces TrueNAS ZFS datasets with restricted NFSv4 ACLs, where chmod
     # raises EPERM even for root. Ingest must not depend on chmod'ing the dest.
