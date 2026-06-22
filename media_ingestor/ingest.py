@@ -196,7 +196,9 @@ def _copy_verify(src: Path, dest: Path, algorithm: str, staging: Path) -> None:
     dest.parent.mkdir(parents=True, exist_ok=True)
     tmp = staging / (dest.name + ".part")
     src_hash = hash_file(src, algorithm)
-    shutil.copy2(src, tmp)
+    # copyfile (not copy2): copy bytes only, never chmod the destination —
+    # chmod is denied (EPERM) on ZFS datasets using restricted NFSv4 ACLs.
+    shutil.copyfile(src, tmp)
     if hash_file(tmp, algorithm) != src_hash:
         tmp.unlink(missing_ok=True)
         raise OSError(f"hash mismatch after copy: {src} -> {dest}")
@@ -208,7 +210,7 @@ def _atomic_copy(src: Path, dest: Path, staging: Path) -> None:
     staging.mkdir(parents=True, exist_ok=True)
     dest.parent.mkdir(parents=True, exist_ok=True)
     tmp = staging / (dest.name + ".part")
-    shutil.copy2(src, tmp)
+    shutil.copyfile(src, tmp)  # bytes only — see _copy_verify re: NFSv4 ACLs
     os.replace(tmp, dest)
 
 

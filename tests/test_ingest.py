@@ -209,6 +209,22 @@ def test_folder_with_leftover_nonmedia_is_kept(tmp_path):
     assert sub.exists()                         # so its folder is kept
 
 
+def test_ingest_works_when_chmod_is_denied(tmp_path, monkeypatch):
+    # Reproduces TrueNAS ZFS datasets with restricted NFSv4 ACLs, where chmod
+    # raises EPERM even for root. Ingest must not depend on chmod'ing the dest.
+    def _deny_chmod(*_a, **_k):
+        raise PermissionError(1, "Operation not permitted")
+
+    monkeypatch.setattr(os, "chmod", _deny_chmod)
+    cfg = make_config(tmp_path)
+    write_media(cfg.incoming / "cam" / "DSC_0001.mov", b"hello", when="2026-06-20T10:00:00")
+
+    stats = ingest.run(cfg, dry_run=False)
+
+    assert stats.imported == 1 and stats.errors == 0
+    assert (cfg.originals / "2026" / "06" / "20260620-100000_cam_DSC_0001.mov").read_bytes() == b"hello"
+
+
 # --- resilience: crash leftovers and stale locks ---------------------------
 
 def test_orphaned_staging_file_is_swept(tmp_path):
